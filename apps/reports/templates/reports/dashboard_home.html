@@ -1,0 +1,120 @@
+{% load static %}
+<!-- Load static assets so this dashboard can reuse the shared admin stylesheet. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waste Reports Dashboard</title>
+  <link rel="stylesheet" href="{% static 'reports/admin_dashboard.css' %}">
+</head>
+<body class="dashboard-body">
+  <header class="dashboard-header">
+    <div>
+      <span class="eyebrow">Admin Dashboard</span>
+      <h1>Waste report operations</h1>
+      <p>Manage live reports, update progress, and notify users from one responsive web view.</p>
+    </div>
+    <div class="header-actions">
+      <span class="admin-pill">{{ request.user.username }}</span>
+      <a class="secondary-button" href="{% url 'reports-dashboard-logout' %}">Logout</a>
+    </div>
+  </header>
+
+  <main class="dashboard-main">
+    <!-- Django's messages framework lets the backend show success/error feedback after actions. -->
+    {% if messages %}
+      <section class="messages-stack">
+        {% for message in messages %}
+          <div class="message-card {{ message.tags|default:'info' }}">{{ message }}</div>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <!-- Summary cards give admins a quick count of reports in each workflow state. -->
+    <section class="summary-grid">
+      <article class="summary-card">
+        <span>Total reports</span>
+        <strong>{{ total_reports }}</strong>
+      </article>
+      <article class="summary-card">
+        <span>Reported</span>
+        <strong>{{ summary.reported }}</strong>
+      </article>
+      <article class="summary-card">
+        <span>In Progress</span>
+        <strong>{{ summary.in_progress }}</strong>
+      </article>
+      <article class="summary-card">
+        <span>Resolved</span>
+        <strong>{{ summary.resolved }}</strong>
+      </article>
+    </section>
+
+    <!-- The filter bar is generated from status choices so the UI stays in sync with backend statuses. -->
+    <section class="filter-bar">
+      <!-- {# url #} builds the correct route by name instead of hardcoding paths in the template. -->
+      <a class="{% if not selected_status %}active{% endif %}" href="{% url 'reports-dashboard-home' %}">All</a>
+      <!-- {# for #} repeats a filter link for each backend status choice. -->
+      {% for status_value, status_label in status_choices %}
+        <a class="{% if selected_status == status_value %}active{% endif %}" href="{% url 'reports-dashboard-home' %}?status={{ status_value }}">{{ status_label }}</a>
+      {% endfor %}
+    </section>
+
+    <section class="reports-grid">
+      {% for report in reports %}
+        <article class="report-card">
+          <div class="report-meta">
+            <span class="report-id">Report #{{ report.id }}</span>
+            <!-- The status class is dynamic so CSS can style each state differently. -->
+            <span class="status-badge status-{{ report.status }}">{{ report.get_status_display }}</span>
+          </div>
+          <h2>{{ report.description }}</h2>
+          <p class="muted">Submitted by {{ report.user.username }} on {{ report.created_at|date:"M d, Y H:i" }}</p>
+          <!-- This block mirrors the citizen-facing report progress in a staff-friendly summary. -->
+          <div class="progress-block">
+            <div class="progress-topline">
+              <span>Citizen progress</span>
+              <strong>{{ report.progress_percent }}%</strong>
+            </div>
+            <div class="progress-track">
+               <div class="progress-fill status-{{ report.status }}" style="--progress-width: {{ report.progress_percent }}%;"></div>
+            </div>
+            <div class="progress-steps">
+              <span class="{% if report.progress_step >= 1 %}done{% endif %}">Reported</span>
+              <span class="{% if report.progress_step >= 2 %}done{% endif %}">In Progress</span>
+              <span class="{% if report.progress_step >= 3 %}done{% endif %}">Resolved</span>
+            </div>
+          </div>
+          <dl class="report-details">
+            <div><dt>Coordinates</dt><dd>{{ report.latitude }}, {{ report.longitude }}</dd></div>
+            <div><dt>Updated</dt><dd>{{ report.updated_at|date:"M d, Y H:i" }}</dd></div>
+          </dl>
+          <!-- {# if #} only shows the photo link when a report image was actually uploaded. -->
+          {% if report.photo %}
+            <a class="report-photo-link" href="{{ report.photo.url }}" target="_blank" rel="noreferrer">Open uploaded photo</a>
+          {% endif %}
+          <!-- This POST form updates the report status and reuses the existing backend notification flow. -->
+          <form method="post" action="{% url 'reports-dashboard-status' report.id %}" class="status-form">
+            {% csrf_token %}
+            <label for="status-{{ report.id }}">Update status</label>
+            <div class="status-form-row">
+              <select id="status-{{ report.id }}" name="status">
+                <option value="in_progress" {% if report.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                <option value="resolved" {% if report.status == 'resolved' %}selected{% endif %}>Resolved</option>
+              </select>
+              <button type="submit" class="primary-button">Save</button>
+            </div>
+          </form>
+        </article>
+      {% empty %}
+        <!-- {# empty #} is Django's fallback content when the reports loop has no items. -->
+        <article class="empty-state">
+          <h2>No reports found</h2>
+          <p>Try another filter or wait for new citizen submissions.</p>
+        </article>
+      {% endfor %}
+    </section>
+  </main>
+</body>
+</html>

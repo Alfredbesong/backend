@@ -1,0 +1,52 @@
+{% load static %}
+<!-- Load Django's static helper so this template can link to the shared CSS file. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Sign In</title>
+  <link rel="stylesheet" href="{% static 'reports/admin_dashboard.css' %}">
+</head>
+<body class="dashboard-body dashboard-auth">
+  <main class="auth-shell">
+    <section class="auth-panel auth-panel-brand">
+      <span class="eyebrow">Smart Waste Management</span>
+      <h1>Responsive admin control center for report monitoring.</h1>
+      <p>Sign in with an admin or staff account to review incoming reports, update status, and trigger citizen notifications.</p>
+      <div class="auth-badges">
+        <span>Reported</span>
+        <span>In Progress</span>
+        <span>Resolved</span>
+      </div>
+    </section>
+    <section class="auth-panel auth-panel-form">
+      <h2>Admin Login</h2>
+      <p class="muted">This dashboard is only for authorized staff.</p>
+      <form method="post" class="auth-form">
+        <!-- CSRF protects this POST form from cross-site request forgery attacks. -->
+        {% csrf_token %}
+        <!-- Non-field errors are general form errors, like invalid admin credentials. -->
+        {% if form.non_field_errors %}
+          <div class="message-card error">
+            {% for error in form.non_field_errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+        <label for="{{ form.username.id_for_label }}">Username</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <div class="field-error">{{ form.username.errors|join:', ' }}</div>
+        {% endif %}
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password }}
+        {% if form.password.errors %}
+          <div class="field-error">{{ form.password.errors|join:', ' }}</div>
+        {% endif %}
+        <button type="submit" class="primary-button">Sign In</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
