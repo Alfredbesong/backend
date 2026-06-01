@@ -8,6 +8,33 @@ from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def _load_dotenv_file() -> None:
+    """
+    Load a local .env file for development without requiring an extra package.
+
+    Render and other platforms can still provide real environment variables; this
+    only fills in missing values from backend/.env when present.
+    """
+    env_file = BASE_DIR / '.env'
+    if not env_file.exists():
+        return
+
+    for raw_line in env_file.read_text(encoding='utf-8').splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+
+        key, value = line.split('=', 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_dotenv_file()
+
+
 def _env_bool(name: str, default: str = 'false') -> bool:
     return os.getenv(name, default).strip().lower() == 'true'
 
@@ -25,9 +52,9 @@ def _normalize_origin(value: str) -> str | None:
     return f'https://{value.rstrip("/")}'
 
 
-DEBUG = _env_bool('DJANGO_DEBUG', 'false')
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'replace-me-in-production')
-if not DEBUG and SECRET_KEY == 'replace-me-in-production':
+DEBUG = _env_bool('DJANGO_DEBUG', 'true')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-development-key')
+if not DEBUG and SECRET_KEY == 'django-insecure-development-key':
     raise ImproperlyConfigured('DJANGO_SECRET_KEY must be set when DEBUG is False.')
 
 _allowed_hosts = _split_csv(os.getenv('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost'))
