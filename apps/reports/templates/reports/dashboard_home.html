@@ -17,7 +17,10 @@
     </div>
     <div class="header-actions">
       <span class="admin-pill">{{ request.user.username }}</span>
-      <a class="secondary-button" href="{% url 'reports-dashboard-logout' %}">Logout</a>
+      <form method="post" action="{% url 'reports-dashboard-logout' %}" class="logout-form">
+        {% csrf_token %}
+        <button type="submit" class="secondary-button">Logout</button>
+      </form>
     </div>
   </header>
 

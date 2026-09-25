@@ -149,6 +149,15 @@ class WasteReportViewSet(viewsets.ModelViewSet):
         if previous_status != updated_report.status:
             send_report_status_notification(updated_report)
 
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        report = self.get_object()
+        return Response(
+            WasteReportReadSerializer(report, context=self.get_serializer_context()).data,
+            status=response.status_code,
+            headers=response.headers,
+        )
+
     def destroy(self, request, *args, **kwargs):
         report = get_object_or_404(WasteReport.objects.select_related('user'), pk=kwargs['pk'])
         user = request.user

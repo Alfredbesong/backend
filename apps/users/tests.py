@@ -1,15 +1,23 @@
+from io import BytesIO
+
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.test import override_settings
+from PIL import Image
 from rest_framework.test import APIClient
+import tempfile
 
 from .models import DeviceToken
 
-VALID_PNG_BYTES = (
-    b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01'
-    b'\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\xff'
-    b'\xff?\x00\x05\xfe\x02\xfeA\xd9\x8f\xbb\x00\x00\x00\x00IEND\xaeB`\x82'
-)
+def _valid_png_bytes():
+    buffer = BytesIO()
+    Image.new('RGB', (1, 1), color='green').save(buffer, format='PNG')
+    return buffer.getvalue()
+
+
+VALID_PNG_BYTES = _valid_png_bytes()
+TEST_MEDIA_ROOT = tempfile.mkdtemp(prefix='wastemanagement-users-tests-')
 
 
 class RegisterApiTests(TestCase):
@@ -25,7 +33,7 @@ class RegisterApiTests(TestCase):
                 'first_name': 'Citizen',
                 'last_name': 'User',
                 'phone_number': '+234 801 234 5678',
-                'password': 'password123',
+                'password': 'SecurePass123!',
             },
             format='json',
         )
@@ -41,7 +49,7 @@ class RegisterApiTests(TestCase):
         get_user_model().objects.create_user(
             username='citizen1',
             email='citizen@example.com',
-            password='password123',
+            password='SecurePass123!',
         )
 
         response = self.client.post(
@@ -52,7 +60,7 @@ class RegisterApiTests(TestCase):
                 'first_name': 'Citizen',
                 'last_name': 'Two',
                 'phone_number': '123456789',
-                'password': 'password123',
+                'password': 'SecurePass123!',
             },
             format='json',
         )
@@ -81,14 +89,14 @@ class RegisterApiTests(TestCase):
         get_user_model().objects.create_user(
             username='citizen1',
             email='citizen@example.com',
-            password='password123',
+            password='SecurePass123!',
         )
 
         response = self.client.post(
             '/api/auth/token/',
             {
                 'username': 'citizen1',
-                'password': 'password123',
+                'password': 'SecurePass123!',
             },
             format='json',
         )
@@ -101,7 +109,7 @@ class RegisterApiTests(TestCase):
         user = get_user_model().objects.create_user(
             username='citizen1',
             email='citizen@example.com',
-            password='password123',
+            password='SecurePass123!',
         )
         self.client.force_authenticate(user)
 
@@ -119,6 +127,7 @@ class RegisterApiTests(TestCase):
         self.assertEqual(DeviceToken.objects.first().user, user)
 
 
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class ProfileApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -128,7 +137,7 @@ class ProfileApiTests(TestCase):
             first_name='Citizen',
             last_name='One',
             phone_number='+2348012345678',
-            password='password123',
+            password='SecurePass123!',
         )
 
     def test_authenticated_user_can_fetch_profile_photo_field(self):
@@ -166,7 +175,7 @@ class ProfileApiTests(TestCase):
         get_user_model().objects.create_user(
             username='citizen2',
             email='citizen2@example.com',
-            password='password123',
+            password='SecurePass123!',
         )
         self.client.force_authenticate(self.user)
 
@@ -183,7 +192,7 @@ class ProfileApiTests(TestCase):
         get_user_model().objects.create_user(
             username='citizen2',
             email='citizen2@example.com',
-            password='password123',
+            password='SecurePass123!',
         )
         self.client.force_authenticate(self.user)
 

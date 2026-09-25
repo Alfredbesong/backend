@@ -181,6 +181,10 @@ select:focus {
   align-items: center;
 }
 
+.logout-form {
+  margin: 0;
+}
+
 .dashboard-main {
   padding-bottom: 40px;
 }

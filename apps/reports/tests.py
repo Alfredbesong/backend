@@ -1,24 +1,40 @@
+from io import BytesIO
+
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.test import override_settings
 from django.urls import reverse
+from PIL import Image
 from rest_framework.test import APIClient
+import tempfile
 
 from .models import Confirmation, WasteReport
 
 
+def _valid_png_bytes():
+    buffer = BytesIO()
+    Image.new('RGB', (1, 1), color='green').save(buffer, format='PNG')
+    return buffer.getvalue()
+
+
+VALID_PNG_BYTES = _valid_png_bytes()
+TEST_MEDIA_ROOT = tempfile.mkdtemp(prefix='wastemanagement-reports-tests-')
+
+
+@override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class ReportApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = get_user_model().objects.create_user(
             username='citizen1',
             email='citizen@example.com',
-            password='password123',
+            password='SecurePass123!',
         )
         self.admin = get_user_model().objects.create_user(
             username='admin1',
             email='admin@example.com',
-            password='password123',
+            password='SecurePass123!',
             is_staff=True,
             role='admin',
         )
@@ -32,7 +48,7 @@ class ReportApiTests(TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_user_can_create_report(self):
-        image = SimpleUploadedFile('waste.jpg', b'filecontent', content_type='image/jpeg')
+        image = SimpleUploadedFile('waste.png', VALID_PNG_BYTES, content_type='image/png')
 
         response = self.client.post(
             '/api/reports/',
@@ -52,7 +68,7 @@ class ReportApiTests(TestCase):
         report = WasteReport.objects.create(
             user=self.user,
             description='Waste beside the road',
-            photo=SimpleUploadedFile('waste.jpg', b'filecontent', content_type='image/jpeg'),
+            photo=SimpleUploadedFile('waste.png', VALID_PNG_BYTES, content_type='image/png'),
             latitude=4.156,
             longitude=9.265,
         )
@@ -69,7 +85,7 @@ class ReportApiTests(TestCase):
         report = WasteReport.objects.create(
             user=self.user,
             description='Waste beside the road',
-            photo=SimpleUploadedFile('waste.jpg', b'filecontent', content_type='image/jpeg'),
+            photo=SimpleUploadedFile('waste.png', VALID_PNG_BYTES, content_type='image/png'),
             latitude=4.156,
             longitude=9.265,
         )
@@ -89,7 +105,7 @@ class ReportApiTests(TestCase):
         report = WasteReport.objects.create(
             user=self.user,
             description='Waste beside the road',
-            photo=SimpleUploadedFile('waste.jpg', b'filecontent', content_type='image/jpeg'),
+            photo=SimpleUploadedFile('waste.png', VALID_PNG_BYTES, content_type='image/png'),
             latitude=4.156,
             longitude=9.265,
         )
@@ -107,7 +123,7 @@ class ReportApiTests(TestCase):
         report = WasteReport.objects.create(
             user=self.user,
             description='Waste beside the road',
-            photo=SimpleUploadedFile('waste.jpg', b'filecontent', content_type='image/jpeg'),
+            photo=SimpleUploadedFile('waste.png', VALID_PNG_BYTES, content_type='image/png'),
             latitude=4.156,
             longitude=9.265,
         )
@@ -121,12 +137,12 @@ class ReportApiTests(TestCase):
         other_user = get_user_model().objects.create_user(
             username='citizen2',
             email='citizen2@example.com',
-            password='password123',
+            password='SecurePass123!',
         )
         report = WasteReport.objects.create(
             user=other_user,
             description='Waste beside the road',
-            photo=SimpleUploadedFile('waste.jpg', b'filecontent', content_type='image/jpeg'),
+            photo=SimpleUploadedFile('waste.png', VALID_PNG_BYTES, content_type='image/png'),
             latitude=4.156,
             longitude=9.265,
         )
@@ -137,25 +153,32 @@ class ReportApiTests(TestCase):
         self.assertTrue(WasteReport.objects.filter(id=report.id).exists())
 
 
+@override_settings(
+    MEDIA_ROOT=TEST_MEDIA_ROOT,
+    STORAGES={
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    },
+)
 class ReportDashboardTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = get_user_model().objects.create_user(
             username='citizen1',
             email='citizen@example.com',
-            password='password123',
+            password='SecurePass123!',
         )
         self.admin = get_user_model().objects.create_user(
             username='admin1',
             email='admin@example.com',
-            password='password123',
+            password='SecurePass123!',
             is_staff=True,
             role='admin',
         )
         self.report = WasteReport.objects.create(
             user=self.user,
             description='Overflowing bin near the main road',
-            photo=SimpleUploadedFile('waste.jpg', b'filecontent', content_type='image/jpeg'),
+            photo=SimpleUploadedFile('waste.png', VALID_PNG_BYTES, content_type='image/png'),
             latitude=4.156,
             longitude=9.265,
         )
@@ -168,7 +191,7 @@ class ReportDashboardTests(TestCase):
 
     def test_non_admin_cannot_access_dashboard(self):
         self.client.force_authenticate(user=None)
-        self.client.login(username='citizen1', password='password123')
+        self.client.login(username='citizen1', password='SecurePass123!')
 
         response = self.client.get(reverse('reports-dashboard-home'))
 
@@ -176,7 +199,7 @@ class ReportDashboardTests(TestCase):
 
     def test_admin_can_view_dashboard(self):
         self.client.force_authenticate(user=None)
-        self.client.login(username='admin1', password='password123')
+        self.client.login(username='admin1', password='SecurePass123!')
 
         response = self.client.get(reverse('reports-dashboard-home'))
 
@@ -184,9 +207,22 @@ class ReportDashboardTests(TestCase):
         self.assertContains(response, 'Waste report operations')
         self.assertContains(response, 'Overflowing bin near the main road')
 
+    def test_admin_can_logout_to_dashboard_login(self):
+        self.client.force_authenticate(user=None)
+        self.client.login(username='admin1', password='SecurePass123!')
+
+        response = self.client.post(reverse('reports-dashboard-logout'))
+
+        self.assertRedirects(response, reverse('reports-dashboard-login'))
+        dashboard_response = self.client.get(reverse('reports-dashboard-home'))
+        self.assertRedirects(
+            dashboard_response,
+            reverse('reports-dashboard-login'),
+        )
+
     def test_admin_can_update_status_from_dashboard(self):
         self.client.force_authenticate(user=None)
-        self.client.login(username='admin1', password='password123')
+        self.client.login(username='admin1', password='SecurePass123!')
 
         response = self.client.post(
             reverse('reports-dashboard-status', args=[self.report.id]),

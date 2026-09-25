@@ -34,7 +34,11 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password')
+        validated_data['role'] = User.Role.CITIZEN
         user = User(**validated_data)
+        user.role = User.Role.CITIZEN
+        user.is_staff = False
+        user.is_superuser = False
         user.set_password(password)
         user.save()
         return user

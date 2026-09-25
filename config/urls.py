@@ -10,5 +10,6 @@ urlpatterns = [
     path("api/", include("apps.users.urls")),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# The MVP dashboard links directly to uploaded report and profile images.
+# Render stores these files on the configured persistent disk when using a paid service.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
