@@ -82,6 +82,10 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
 
 class DeviceTokenSerializer(serializers.ModelSerializer):
+    # The endpoint upserts by token, so DRF must not reject an existing token
+    # before the view can move it to the currently authenticated device owner.
+    token = serializers.CharField(max_length=255, validators=[])
+
     class Meta:
         model = DeviceToken
         fields = ['token', 'platform']

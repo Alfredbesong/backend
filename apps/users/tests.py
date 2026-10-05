@@ -126,6 +126,33 @@ class RegisterApiTests(TestCase):
         self.assertEqual(DeviceToken.objects.count(), 1)
         self.assertEqual(DeviceToken.objects.first().user, user)
 
+    def test_existing_device_token_is_updated_for_current_user(self):
+        first_user = get_user_model().objects.create_user(
+            username='citizen2',
+            email='citizen2@example.com',
+            password='SecurePass123!',
+        )
+        second_user = get_user_model().objects.create_user(
+            username='citizen3',
+            email='citizen3@example.com',
+            password='SecurePass123!',
+        )
+        DeviceToken.objects.create(
+            user=first_user,
+            token='fcm-token-reused',
+            platform='android',
+        )
+        self.client.force_authenticate(second_user)
+
+        response = self.client.post(
+            '/api/auth/device-token/',
+            {'token': 'fcm-token-reused', 'platform': 'android'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(DeviceToken.objects.get(token='fcm-token-reused').user, second_user)
+
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class ProfileApiTests(TestCase):
