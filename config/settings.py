@@ -134,18 +134,10 @@ USE_TZ = True
 CLOUDINARY_CLOUD_NAME = os.environ.get("CLOUDINARY_CLOUD_NAME")
 
 if CLOUDINARY_CLOUD_NAME:
-    INSTALLED_APPS = ["cloudinary_storage"] + INSTALLED_APPS + ["cloudinary"]
-
     CLOUDINARY_STORAGE = {
         "CLOUD_NAME": CLOUDINARY_CLOUD_NAME,
         "API_KEY": os.environ.get("CLOUDINARY_API_KEY"),
         "API_SECRET": os.environ.get("CLOUDINARY_API_SECRET"),
-    }
-
-    # Django 4.2+ / 5.x style
-    STORAGES = {
-        **globals().get("STORAGES", {}),
-        "default": {"BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"},
     }
 
 STATIC_URL = '/static/'
@@ -160,6 +152,10 @@ STORAGES = {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
 }
+if CLOUDINARY_CLOUD_NAME:
+    STORAGES['default'] = {
+        'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
+    }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
