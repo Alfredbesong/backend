@@ -144,17 +144,25 @@ STATIC_URL = '/static/'
 STATIC_ROOT = Path(os.getenv('DJANGO_STATIC_ROOT', str(BASE_DIR / 'staticfiles')))
 MEDIA_URL = '/media/'
 MEDIA_ROOT = Path(os.getenv('DJANGO_MEDIA_ROOT', str(BASE_DIR / 'media')))
-STORAGES = {
-    'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
-    },
-    'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-    },
-}
-if CLOUDINARY_CLOUD_NAME:
-    STORAGES['default'] = {
-        'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage',
+#for cloudinary storage of images
+if os.getenv("CLOUDINARY_CLOUD_NAME"):
+    STORAGES={
+        "default":{
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND":"Whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    # for local storage of images in device drive
+    STORAGES={
+        "default":{
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND":"Whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
     }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
